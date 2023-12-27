@@ -38,12 +38,24 @@ def archive_landing_zone_file(boto3_client, bucket_name, path_prefix, archive_pa
 
     return file_list    
 
-def spark_jobs(spark, landing_zone, archive_path, refined_path):
-    pass
+def spark_jobs(spark, bucket_name, landing_zone, refined_path):
+    # Create DataFrame
+    df = spark.read.csv(f"s3://{bucket_name}/{landing_zone}/*" , header=True)
+
+    # convert csv to parquet
+    df.write.parquet(f"s3://{bucket_name}/{refined_path}", mode="append")
 
 if __name__ == "__main__":
     client = boto3.client("s3")
+    app_name = "spark_emr_serverless_example"
     bucket_name = None
     landing_zone = None
     archive_path = None
+    refined_path = None
     new_files = archive_landing_zone_file(client, bucket_name, landing_zone, archive_path)
+    
+    # Create Spark Session
+    spark = create_spark_session(app_name=app_name)
+
+    # Start Spark ETL jobs
+    spark_jobs(spark, bucket_name, landing_zone, refined_path) 
